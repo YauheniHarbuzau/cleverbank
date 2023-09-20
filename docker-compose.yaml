@@ -1,0 +1,14 @@
+version: "3.9"
+services:
+  postgres:
+    image: postgres:15.2
+    restart: always
+    environment:
+      - DATABASE_HOST=127.0.0.1
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=root
+      - POSTGRES_DB=clever_bank
+    ports:
+      - "5432:5432"
+    volumes:
+      - ./docker_postgres_init.sql:/docker-entrypoint-initdb.d/docker_postgres_init.sql

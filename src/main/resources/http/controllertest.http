@@ -1,0 +1,56 @@
+###BankFindById
+GET http://localhost:8080/banks?id=1
+
+###BankFindAll
+GET http://localhost:8080/banks
+
+###BankSave
+POST http://localhost:8080/banks?id=10&name=BANKNAME
+
+###BankDeleteById
+DELETE http://localhost:8080/banks?id=10
+
+
+
+###ClientFindById
+GET http://localhost:8080/clients?id=1
+
+###ClientFindAll
+GET http://localhost:8080/clients
+
+###ClientSave
+POST http://localhost:8080/clients?id=100&name=NAME&lastName=LASTNAME
+
+###ClientDeleteById
+DELETE http://localhost:8080/clients?id=100
+
+
+
+###AccountFindById
+GET http://localhost:8080/accounts?id=1
+
+###AccountFindAll
+GET http://localhost:8080/accounts
+
+###AccountSave
+POST http://localhost:8080/accounts?id=100&number=1111333355557777&amount=1000&currency=USD
+
+###AccountDeleteById
+DELETE http://localhost:8080/accounts?id=100
+
+
+
+###TransactionFindById
+GET http://localhost:8080/transactions?id=1
+
+###TransactionFindAll
+GET http://localhost:8080/transactions
+
+###TransactionSave
+POST http://localhost:8080/transactions?id=100&accountNumberFrom=0000000000000001&accountNumberTo=0000000000000111&amount=1000
+
+###TransactionDeleteById
+DELETE http://localhost:8080/transactions?id=100
+
+###TransactionExecution
+POST http://localhost:8080/transactions?accountNumberFrom=0000000000000001&accountNumberTo=0000000000000111&amount=1000

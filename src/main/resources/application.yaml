@@ -1,0 +1,20 @@
+dataSource:
+  driver: org.postgresql.Driver
+  url: jdbc:postgresql://localhost:5432/clever_bank
+  username: postgres
+  password: root
+currencyConversionFactor:
+  bynToRub: 40.0
+  bynToUsd: 0.4
+  bynToEur: 0.4
+  rubToByn: 0.025
+  rubToUsd: 0.0625
+  rubToEur: 0.0625
+  usdToByn: 2.5
+  usdToRub: 16.0
+  usdToEur: 2.5
+  eurToByn: 2.5
+  eurToRub: 16.0
+  eurToUsd: 2.5
+interestRate:
+  rate: 1.0
