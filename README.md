@@ -20,12 +20,11 @@
 
 Перед началом работы необходимо выполнить команду `docker compose up` для создания контейнера PostgreSQL с заполненной базой данных.
 
-Предусмотрены формирование [чека](check/transaction_example.pdf "transaction_example.pdf") при выполнении транзации
+Реализованы формирование [чека](check/transaction_example.pdf "transaction_example.pdf") по транзакции
 и формирование [выписки](statement-money/account_transactions_example.pdf "account_transactions_example.pdf") по всем транзакциям счета
-в формате pdf</br>
-(класс TransactionServiceImpl методы transactionExecution(TransactionDto) и findAllByAccountNumber(String) соответственно).
+в формате pdf.
 
-Выполнены начисления по процентной ставке в последний день месяца (класс ApplyInterest).
+Реализован функционал начислений по процентной ставке в последний день месяца.
 
 ***
 

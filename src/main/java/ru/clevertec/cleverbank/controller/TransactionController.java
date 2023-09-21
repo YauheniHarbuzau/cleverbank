@@ -65,6 +65,7 @@ public class TransactionController extends HttpServlet {
                     .amount(Double.valueOf(amount))
                     .build();
             transactionService.save(transaction);
+            printWriter.print(gson.toJson(transaction));
         } else {
             transaction = TransactionDto.builder()
                     .accountNumberFrom(accountNumberFrom)
@@ -72,8 +73,8 @@ public class TransactionController extends HttpServlet {
                     .amount(Double.valueOf(amount))
                     .build();
             transactionService.transactionExecution(transaction);
+            printWriter.print("Transaction completed");
         }
-        printWriter.print(gson.toJson(transaction));
         printWriter.flush();
     }
 

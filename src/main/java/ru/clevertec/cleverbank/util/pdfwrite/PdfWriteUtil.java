@@ -12,26 +12,20 @@ import com.itextpdf.layout.properties.TextAlignment;
 import lombok.SneakyThrows;
 import ru.clevertec.cleverbank.dto.AccountDtoWithLog;
 import ru.clevertec.cleverbank.dto.ClientDtoWithLog;
-import ru.clevertec.cleverbank.dto.TransactionDto;
-import ru.clevertec.cleverbank.entity.Transaction;
-import ru.clevertec.cleverbank.service.impl.TransactionServiceImpl;
-import ru.clevertec.cleverbank.util.date.DateTimeUtil;
-import ru.clevertec.cleverbank.util.yamlread.YamlReadUtil;
+import ru.clevertec.cleverbank.dto.TransactionDtoWithLog;
+import ru.clevertec.cleverbank.util.currencyconverter.CurrencyConverterUtil;
 
 import java.text.DecimalFormat;
 import java.time.LocalDate;
 import java.time.LocalTime;
 import java.util.List;
 
-import static ru.clevertec.cleverbank.util.yamlread.YamlReadUtil.readYaml;
+import static ru.clevertec.cleverbank.util.currencyconverter.CurrencyConverterUtil.currencyConvert;
 
 /**
  * Утилитарный класс для генерации pdf-файлов
- * Используется в методах findAllByAccountNumber(String) и transactionExecution(TransactionDto) класса TransactionServiceImpl
  *
- * @see TransactionServiceImpl
- * @see YamlReadUtil
- * @see DateTimeUtil
+ * @see CurrencyConverterUtil#currencyConvert(String, String, Double)
  */
 public class PdfWriteUtil {
 
@@ -39,7 +33,7 @@ public class PdfWriteUtil {
     private static Long fileAccountTransactionsNumber = 1L;
 
     @SneakyThrows
-    public static void getTransactionPdf(String bankNameFrom, String bankNameTo, TransactionDto transactionDto, String currency) {
+    public static void transactionPdf(String bankNameFrom, String bankNameTo, TransactionDtoWithLog transaction, String currency) {
         String transactionReceiptNumber = new DecimalFormat("0000000000").format(fileTransactionNumber);
         fileTransactionNumber++;
 
@@ -47,11 +41,11 @@ public class PdfWriteUtil {
         PdfDocument pdfDoc = new PdfDocument(writer);
         Document doc = new Document(pdfDoc);
 
-        doc.add(getTransactionPdfTable(transactionReceiptNumber, bankNameFrom, bankNameTo, transactionDto, currency));
+        doc.add(transactionPdfTable(transactionReceiptNumber, bankNameFrom, bankNameTo, transaction, currency));
         doc.close();
     }
 
-    private static Table getTransactionPdfTable(String transactionReceiptNumber, String bankNameFrom, String bankNameTo, TransactionDto transactionDto, String currency) {
+    private static Table transactionPdfTable(String transactionReceiptNumber, String bankNameFrom, String bankNameTo, TransactionDtoWithLog transaction, String currency) {
         Table table = new Table(new float[]{120F, 200F});
         table.setHorizontalAlignment(HorizontalAlignment.CENTER);
 
@@ -67,17 +61,17 @@ public class PdfWriteUtil {
         table.addCell(putCell("bank to", 12F, TextAlignment.LEFT));
         table.addCell(putCell(bankNameTo, 12F, TextAlignment.RIGHT));
         table.addCell(putCell("account from", 12F, TextAlignment.LEFT));
-        table.addCell(putCell(transactionDto.getAccountNumberFrom(), 12F, TextAlignment.RIGHT));
+        table.addCell(putCell(transaction.getAccountNumberFrom(), 12F, TextAlignment.RIGHT));
         table.addCell(putCell("account to:", 12F, TextAlignment.LEFT));
-        table.addCell(putCell(transactionDto.getAccountNumberTo(), 12F, TextAlignment.RIGHT));
+        table.addCell(putCell(transaction.getAccountNumberTo(), 12F, TextAlignment.RIGHT));
         table.addCell(putCell("amount:", 12F, TextAlignment.LEFT));
-        table.addCell(putCell(new DecimalFormat("0.00").format(transactionDto.getAmount()) + " " + currency, 12F, TextAlignment.RIGHT));
+        table.addCell(putCell(new DecimalFormat("0.00").format(transaction.getAmount()) + " " + currency, 12F, TextAlignment.RIGHT));
 
         return table;
     }
 
     @SneakyThrows
-    public static void getAccountTransactionsPdf(ClientDtoWithLog client, AccountDtoWithLog account, List<Transaction> transactionList) {
+    public static void accountTransactionsPdf(ClientDtoWithLog client, AccountDtoWithLog account, List<TransactionDtoWithLog> transactionList) {
         String accountTransactionsReceiptNumber = new DecimalFormat("0000000000").format(fileAccountTransactionsNumber);
         fileAccountTransactionsNumber++;
 
@@ -88,12 +82,12 @@ public class PdfWriteUtil {
         var accountNumber = account.getNumber();
         var accountCurrency = account.getCurrency();
 
-        doc.add(getAccountTransactionsPdfHeadTable(client, accountNumber, accountCurrency));
-        doc.add(getAccountTransactionsPdfInfoTable(transactionList, accountNumber));
+        doc.add(accountTransactionsPdfHeadTable(client, accountNumber, accountCurrency));
+        doc.add(accountTransactionsPdfInfoTable(transactionList, accountNumber));
         doc.close();
     }
 
-    private static Table getAccountTransactionsPdfHeadTable(ClientDtoWithLog client, String accountNumber, String accountCurrency) {
+    private static Table accountTransactionsPdfHeadTable(ClientDtoWithLog client, String accountNumber, String accountCurrency) {
         Table table = new Table(new float[]{100F, 200F});
         table.setHorizontalAlignment(HorizontalAlignment.CENTER);
 
@@ -110,40 +104,32 @@ public class PdfWriteUtil {
         return table;
     }
 
-    private static Table getAccountTransactionsPdfInfoTable(List<Transaction> transactionList, String accountNumber) {
+    private static Table accountTransactionsPdfInfoTable(List<TransactionDtoWithLog> transactionList, String accountNumber) {
         Table table = new Table(new float[]{100F, 50F, 150F, 100F});
         table.setHorizontalAlignment(HorizontalAlignment.CENTER);
 
         var dF = new DecimalFormat("0.00");
 
-        for (Transaction transaction : transactionList) {
-            var fromCurrency = getCurrencies(transaction)[0];
-            var toCurrency = getCurrencies(transaction)[1];
+        for (TransactionDtoWithLog transaction : transactionList) {
+            var fromCurrency = currencies(transaction)[0];
+            var toCurrency = currencies(transaction)[1];
 
             if (accountNumber.equals(transaction.getAccountNumberFrom())) {
-                table.addCell(putCell(DateTimeUtil.getDate(transaction.getDateCreation()), 8F, TextAlignment.LEFT));
+                table.addCell(putCell(transaction.getDateCreation(), 8F, TextAlignment.LEFT));
                 table.addCell(putCell("withdraw to", 8F, TextAlignment.LEFT));
                 table.addCell(putCell(transaction.getAccountNumberTo(), 8F, TextAlignment.LEFT));
                 table.addCell(putCell("-" + dF.format(transaction.getAmount()) + " " + fromCurrency, 8F, TextAlignment.LEFT));
             } else if (accountNumber.equals(transaction.getAccountNumberTo())) {
-                table.addCell(putCell(DateTimeUtil.getDate(transaction.getDateCreation()), 8F, TextAlignment.LEFT));
+                table.addCell(putCell(transaction.getDateCreation(), 8F, TextAlignment.LEFT));
                 table.addCell(putCell("refill from", 8F, TextAlignment.LEFT));
                 table.addCell(putCell(transaction.getAccountNumberFrom(), 8F, TextAlignment.LEFT));
-                if (fromCurrency.equals(toCurrency)) {
-                    table.addCell(putCell(dF.format(transaction.getAmount()) + " " + toCurrency, 8F, TextAlignment.LEFT));
-                } else if ("BYN".equals(fromCurrency) && "USD".equals(toCurrency)) {
-                    var bynToUsd = readYaml().getCurrencyConversionFactor().getBynToUsd();
-                    table.addCell(putCell(dF.format(transaction.getAmount() * bynToUsd) + " " + toCurrency, 8F, TextAlignment.LEFT));
-                } else if ("USD".equals(fromCurrency) && "BYN".equals(toCurrency)) {
-                    var usdToByn = readYaml().getCurrencyConversionFactor().getUsdToByn();
-                    table.addCell(putCell(dF.format(transaction.getAmount() * usdToByn) + " " + toCurrency, 8F, TextAlignment.LEFT));
-                }
+                table.addCell(putCell(dF.format(currencyConvert(fromCurrency, toCurrency, transaction.getAmount())) + " " + toCurrency, 8F, TextAlignment.LEFT));
             }
         }
         return table;
     }
 
-    private static String[] getCurrencies(Transaction transaction) {
+    private static String[] currencies(TransactionDtoWithLog transaction) {
         var currencies = transaction.getCurrency();
         return new String[]{currencies.substring(0, 3), currencies.substring(4)};
     }

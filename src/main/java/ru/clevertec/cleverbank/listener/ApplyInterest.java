@@ -32,13 +32,13 @@ public class ApplyInterest implements ServletContextListener {
     private final AccountRepository accountRepository;
     private final Lock lock;
     private final ExecutorService executor;
-    private final ScheduledExecutorService scheduled;
+    private final ScheduledExecutorService scheduler;
 
     public ApplyInterest() {
         this.accountRepository = new AccountRepositoryImpl();
         this.lock = new ReentrantLock();
         this.executor = Executors.newFixedThreadPool(4);
-        this.scheduled = Executors.newSingleThreadScheduledExecutor();
+        this.scheduler = Executors.newSingleThreadScheduledExecutor();
     }
 
     @Override
@@ -65,6 +65,14 @@ public class ApplyInterest implements ServletContextListener {
                 }
             }
         };
-        scheduled.scheduleAtFixedRate(task, 0, 30, TimeUnit.SECONDS);
+        scheduler.scheduleAtFixedRate(task, 0, 30, TimeUnit.SECONDS);
+    }
+
+    @Override
+    public void contextDestroyed(ServletContextEvent servletContextEvent) {
+        if (executor != null && scheduler != null) {
+            executor.shutdown();
+            scheduler.shutdown();
+        }
     }
 }

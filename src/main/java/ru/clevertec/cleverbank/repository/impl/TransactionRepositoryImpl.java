@@ -7,8 +7,8 @@ import ru.clevertec.cleverbank.entity.Transaction;
 import ru.clevertec.cleverbank.repository.AccountRepository;
 import ru.clevertec.cleverbank.repository.TransactionRepository;
 import ru.clevertec.cleverbank.repository.impl.enumentity.Reamounting;
+import ru.clevertec.cleverbank.util.currencyconverter.CurrencyConverterUtil;
 import ru.clevertec.cleverbank.util.connection.ConnectionUtil;
-import ru.clevertec.cleverbank.util.yamlread.YamlReadUtil;
 
 import java.sql.Connection;
 import java.sql.SQLException;
@@ -27,7 +27,7 @@ import static ru.clevertec.cleverbank.constants.Constants.TRANSACTION_FIND_BY_ID
 import static ru.clevertec.cleverbank.constants.Constants.TRANSACTION_UPDATE_SQL;
 import static ru.clevertec.cleverbank.repository.impl.enumentity.Reamounting.REFILL;
 import static ru.clevertec.cleverbank.repository.impl.enumentity.Reamounting.WITHDRAW;
-import static ru.clevertec.cleverbank.util.yamlread.YamlReadUtil.readYaml;
+import static ru.clevertec.cleverbank.util.currencyconverter.CurrencyConverterUtil.currencyConvert;
 
 /**
  * Репозиторий для {@link Transaction}
@@ -36,6 +36,7 @@ import static ru.clevertec.cleverbank.util.yamlread.YamlReadUtil.readYaml;
  * @see AccountRepository
  * @see AccountRepositoryImpl
  * @see Constants
+ * @see CurrencyConverterUtil
  */
 public class TransactionRepositoryImpl implements TransactionRepository {
 
@@ -219,13 +220,13 @@ public class TransactionRepositoryImpl implements TransactionRepository {
     }
 
     /**
-     * Вспомогательный метод для перевода с одного счета на другой с учетом вида валюты
+     * Вспомогательный метод для денежных переводов с одного счета на другой с учетом вида валюты
      *
      * @param accountFrom счет отправителя
      * @param accountTo   счет получателя
      * @param amount      сумма транзакции
      * @see AccountRepositoryImpl#reamounting(String, Double, Reamounting)
-     * @see YamlReadUtil#readYaml()
+     * @see CurrencyConverterUtil#currencyConvert(String, String, Double)
      */
     private void transaction(Account accountFrom, Account accountTo, Double amount) {
         var accountNumberFrom = accountFrom.getNumber();
@@ -236,36 +237,7 @@ public class TransactionRepositoryImpl implements TransactionRepository {
         lock.lock();
         try {
             accountRepository.reamounting(accountNumberFrom, amount, WITHDRAW);
-            switch (currencyFrom) {
-                case "BYN":
-                    switch (currencyTo) {
-                        case "BYN" -> accountRepository.reamounting(accountNumberTo, amount, REFILL);
-                        case "RUB" -> accountRepository.reamounting(accountNumberTo, amount * readYaml().getCurrencyConversionFactor().getBynToRub(), REFILL);
-                        case "USD" -> accountRepository.reamounting(accountNumberTo, amount * readYaml().getCurrencyConversionFactor().getBynToUsd(), REFILL);
-                        case "EUR" -> accountRepository.reamounting(accountNumberTo, amount * readYaml().getCurrencyConversionFactor().getBynToEur(), REFILL);
-                    }
-                case "RUB":
-                    switch (currencyTo) {
-                        case "RUB" -> accountRepository.reamounting(accountNumberTo, amount, REFILL);
-                        case "BYN" -> accountRepository.reamounting(accountNumberTo, amount * readYaml().getCurrencyConversionFactor().getRubToByn(), REFILL);
-                        case "USD" -> accountRepository.reamounting(accountNumberTo, amount * readYaml().getCurrencyConversionFactor().getRubToUsd(), REFILL);
-                        case "EUR" -> accountRepository.reamounting(accountNumberTo, amount * readYaml().getCurrencyConversionFactor().getRubToEur(), REFILL);
-                    }
-                case "USD":
-                    switch (currencyTo) {
-                        case "USD" -> accountRepository.reamounting(accountNumberTo, amount, REFILL);
-                        case "BYN" -> accountRepository.reamounting(accountNumberTo, amount * readYaml().getCurrencyConversionFactor().getUsdToByn(), REFILL);
-                        case "RUB" -> accountRepository.reamounting(accountNumberTo, amount * readYaml().getCurrencyConversionFactor().getUsdToRub(), REFILL);
-                        case "EUR" -> accountRepository.reamounting(accountNumberTo, amount * readYaml().getCurrencyConversionFactor().getUsdToEur(), REFILL);
-                    }
-                case "EUR":
-                    switch (currencyTo) {
-                        case "EUR" -> accountRepository.reamounting(accountNumberTo, amount, REFILL);
-                        case "BYN" -> accountRepository.reamounting(accountNumberTo, amount * readYaml().getCurrencyConversionFactor().getEurToByn(), REFILL);
-                        case "RUB" -> accountRepository.reamounting(accountNumberTo, amount * readYaml().getCurrencyConversionFactor().getEurToRub(), REFILL);
-                        case "USD" -> accountRepository.reamounting(accountNumberTo, amount * readYaml().getCurrencyConversionFactor().getEurToUsd(), REFILL);
-                    }
-            }
+            accountRepository.reamounting(accountNumberTo, currencyConvert(currencyFrom, currencyTo, amount), REFILL);
         } finally {
             lock.unlock();
         }
